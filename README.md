@@ -13,7 +13,6 @@ ChunkyFast is a high-performance chunk pregenerator for **Paper 1.21.x**. It pro
 - **Region-friendly traversal**: chunk iteration optimized for better region (.mca) locality
 - **Optional skipping of already-generated chunks** using region header scanning (fast, non-blocking)
 - **Auto-save + auto-resume**: job state is persisted and can resume after restart
-- **Brigadier commands** with tab-completion
 - **MiniMessage** formatting for all plugin messages
 
 ---
