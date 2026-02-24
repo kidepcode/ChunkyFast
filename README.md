@@ -43,10 +43,9 @@ Aliases: `/cf`, `/cfast`
 
 All coordinates and radii are in **CHUNKS** (not blocks).
 
-```text
 /chunkyfast start <world> circle <radiusChunks> [centerX centerZ]
 /chunkyfast start <world> square <radiusChunks> [centerX centerZ]
-/chunkyfast start <world> rect <minX> <minZ> <maxX> <maxZ>
+/chunkyfast start <world> rect <minX> <minZ> <maxX> <maxZ>`
 /chunkyfast start <world> worldborder
 
 # ChunkyFast
@@ -95,11 +94,13 @@ Aliases: `/cf`, `/cfast`
 
 All coordinates and radii are in **CHUNKS** (not blocks).
 
-```text
-/chunkyfast start <world> circle <radiusChunks> [centerX centerZ]
-/chunkyfast start <world> square <radiusChunks> [centerX centerZ]
-/chunkyfast start <world> rect <minX> <minZ> <maxX> <maxZ>
-/chunkyfast start <world> worldborder
+`/chunkyfast start <world> circle <radiusChunks> [centerX centerZ]`
+
+`/chunkyfast start <world> square <radiusChunks> [centerX centerZ]`
+
+`/chunkyfast start <world> rect <minX> <minZ> <maxX> <maxZ>`
+
+`/chunkyfast start <world> worldborder`
 
 ---
 
