@@ -1,0 +1,149 @@
+# ChunkyFast — high-performance chunk pregenerator (Paper 1.21.x).
+#
+# IMPORTANT:
+# - All coordinates/radii in commands are in CHUNKS (not blocks).
+# - This plugin is designed for OFFLINE pregeneration (typically no players).
+# - Multi-world support is enabled: you can run multiple jobs in parallel.
+#
+# Performance model:
+# - Each world has its own "job limits" (baseLimits.*).
+# - The server has GLOBAL budgets (scheduler.*) shared across all jobs.
+#   This prevents N worlds from multiplying the load by N.
+
+settings:
+  # Scheduler controls how multiple world jobs share resources.
+  scheduler:
+    # Maximum simultaneously running world jobs.
+    # 0 = unlimited (not recommended unless you know your machine is strong).
+    maxActiveWorldJobs: 0
+
+    # Global maximum number of concurrently in-flight chunk requests across ALL jobs.
+    # Keep this close to what your machine can handle.
+    globalMaxConcurrent: 768
+
+    # Global max number of chunk requests to dispatch per tick across ALL jobs.
+    globalDispatchPerTick: 8192
+
+    # Global max number of completed chunks to process per tick across ALL jobs.
+    # (Processing completion includes accounting + enqueueing unload.)
+    globalCompletePerTick: 4096
+
+    # Global max number of unload operations per tick across ALL jobs.
+    globalUnloadPerTick: 8192
+
+  # Per-world job limits (each job is clamped by limiter.factor and by GLOBAL budgets).
+  baseLimits:
+    # Maximum in-flight chunk requests per world job.
+    maxConcurrent: 768
+
+    # Maximum chunk requests dispatched per tick per job.
+    dispatchPerTick: 8192
+
+    # Maximum completions processed per tick per job.
+    completePerTick: 4096
+
+    # Maximum unload operations per tick per job.
+    unloadPerTick: 8192
+
+  # If true, chunk requests are marked as "urgent" (can increase speed, can increase spikes).
+  urgentChunkRequests: false
+
+  # Unload behavior:
+  # REQUEST  = use unloadChunkRequest (recommended)
+  # IMMEDIATE = unloadChunk immediately (more aggressive)
+  # NONE     = never unload (not recommended for large pregens)
+  unloadMode: "REQUEST"
+
+  # Skipping already-generated chunks:
+  # NONE   = do not skip (best for pure pregen)
+  # REGION = skip chunks that already exist on disk by checking region file headers (fast, non-blocking)
+  skipMode: "NONE"
+
+  # Region cache size (only used when skipMode=REGION). This is the number of region headers cached in memory.
+  regionCacheSize: 1024
+
+  # MSPT-based limiter:
+  # It dynamically reduces/increases workload to keep average tick time near msptTarget.
+  limiter:
+    # Enable/disable limiter.
+    enabled: true
+
+    # Desired average MSPT (lower = smoother, higher = faster offline generation).
+    msptTarget: 25.0
+
+    # If MSPT reaches this value, the limiter triggers a hard pause until resumeMspt.
+    hardPauseMspt: 45.0
+
+    # After hard pause, resume when MSPT goes below this value.
+    resumeMspt: 30.0
+
+    # Minimum factor applied to job limits (never goes below this).
+    minFactor: 0.25
+
+    # Maximum factor cap (1.0 means no extra cap).
+    factorCap: 1.00
+
+    # How fast factor increases when MSPT is below target (per second).
+    upPerSecond: 0.40
+
+    # How fast factor decreases when MSPT is above target (per second).
+    downPerSecond: 2.00
+
+  # Autosave active jobs to disk every N seconds (job states).
+  autosaveSeconds: 30
+
+  # If true, automatically resume all saved jobs on server startup.
+  autoResumeOnStart: true
+
+  # Log progress to console every N seconds (0 = disabled).
+  logProgressSeconds: 10
+
+messages:
+  # Prefix added to all plugin messages.
+  prefix: "<gray>[<green>ChunkyFast</green>]</gray> "
+
+  noPermission: "<red>You don't have permission.</red>"
+  onlyConsoleOrPlayer: "<red>This command is not available.</red>"
+
+  usage:
+    - "<white>/chunkyfast start <world> circle <radiusChunks> [centerX centerZ]</white>"
+    - "<white>/chunkyfast start <world> square <radiusChunks> [centerX centerZ]</white>"
+    - "<white>/chunkyfast start <world> rect <minX> <minZ> <maxX> <maxZ></white>"
+    - "<white>/chunkyfast start <world> worldborder</white>"
+    - "<white>/chunkyfast pause [world]</white>"
+    - "<white>/chunkyfast resume [world]</white>"
+    - "<white>/chunkyfast stop [world]</white>"
+    - "<white>/chunkyfast status [world]</white>"
+    - "<white>/chunkyfast list</white>"
+    - "<white>/chunkyfast reload</white>"
+
+  worldNotFound: "<red>World not found: <white><world></white></red>"
+  invalidNumber: "<red>Invalid number: <white><value></white></red>"
+  invalidMode: "<red>Invalid mode: <white><value></white></red>"
+
+  tooManyJobs: "<red>Too many active jobs (limit <white><limit></white>).</red>"
+  jobAlreadyRunningWorld: "<red>A job for world <white><world></white> is already running.</red>"
+  jobNotRunningWorld: "<red>No active job for world <white><world></white>.</red>"
+  ambiguousWorld: "<red>Multiple jobs are running. Please specify a world.</red>"
+
+  started: "<green>Started:</green> <white><world></white> <gray>(<shape>)</gray> <white><total></white> chunks"
+  autoResumed: "<green>Auto-resumed:</green> <white><world></white> <gray>(<shape>)</gray>"
+  paused: "<yellow>Paused.</yellow>"
+  resumed: "<green>Resumed.</green>"
+  stopped: "<red>Stopped.</red>"
+  reloaded: "<green>Configuration reloaded.</green>"
+
+  finished: "<green>Done.</green> <white><done></white>/<white><total></white> <gray>(skipped <white><skipped></white>, errors <white><errors></white>)</gray> <gray>in <white><time></white></gray>"
+
+  noJobs: "<gray>No active jobs.</gray>"
+  listHeader: "<gray>Active jobs:</gray>"
+  listLine: "<white><world></white> <gray>(<shape>)</gray> <gray><done>/<total></gray> <gray>(<percent>%)</gray> <gray>inFlight=<inflight></gray>"
+
+  status:
+    - "<white>World:</white> <gray><world></gray>"
+    - "<white>Shape:</white> <gray><shape></gray>"
+    - "<white>Progress:</white> <gray><done></gray>/<gray><total></gray> <gray>(<percent>%)</gray>"
+    - "<white>MSPT:</white> <gray><mspt></gray> <white>Factor:</white> <gray><factor></gray>"
+    - "<white>InFlight:</white> <gray><inflight></gray> <white>Queue:</white> <gray><q></gray>"
+    - "<white>Rate:</white> <gray><rate></gray> chunks/s <white>ETA:</white> <gray><eta></gray>"
+    - "<white>Skipped:</white> <gray><skipped></gray> <white>Errors:</white> <gray><errors></gray>"

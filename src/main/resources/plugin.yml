@@ -1,0 +1,9 @@
+name: ChunkyFast
+version: 1.0.0
+main: dev.kidepcode.chunkyfast.ChunkyFastPlugin
+api-version: "1.21"
+author: kidepcode
+description: High-performance chunk pregenerator for Paper 1.21.x
+permissions:
+  chunkyfast.admin:
+    default: op
